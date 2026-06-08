@@ -19,12 +19,13 @@ data class FamilyUnit(
     val members: List<Member>
 )
 
-// UI state for Upcoming Birthdays
-data class BirthdayReminder(
+// UI state for Upcoming Events
+data class EventReminder(
     val member: Member,
-    val turningAge: Int,
+    val eventType: String,
+    val years: Int,
     val daysRemaining: Int,
-    val birthdateStr: String
+    val dateStr: String
 )
 
 class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
@@ -76,15 +77,17 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Birthdays calculations for next 30 days
-    val upcomingBirthdays: StateFlow<List<BirthdayReminder>> = members.map { mems ->
-        mems.mapNotNull { m ->
-            calculateBirthdayReminder(m)
-        }.filter { r ->
-            r.daysRemaining in 0..30
-        }.sortedBy { r ->
-            r.daysRemaining
+    // Events calculations for next 30 days
+    val upcomingEvents: StateFlow<List<EventReminder>> = members.map { mems ->
+        val reminders = mutableListOf<EventReminder>()
+        mems.forEach { m ->
+            val bday = calculateEventReminder(m, m.dateOfBirth, "Birthday")
+            if (bday != null && bday.daysRemaining in 0..30) reminders.add(bday)
+            
+            val wed = calculateEventReminder(m, m.weddingDate, "Anniversary")
+            if (wed != null && wed.daysRemaining in 0..30) reminders.add(wed)
         }
+        reminders.sortedBy { it.daysRemaining }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun updateSearchQuery(query: String) {
@@ -311,19 +314,19 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         return "$year-$month-$day"
     }
 
-    private fun calculateBirthdayReminder(member: Member): BirthdayReminder? {
-        val dob = member.dateOfBirth
-        val parts = dob.split("-")
+    private fun calculateEventReminder(member: Member, dateStr: String?, eventType: String): EventReminder? {
+        if (dateStr.isNullOrBlank()) return null
+        val parts = dateStr.split("-")
         if (parts.size < 3) return null
 
-        val birthYear = parts[0].toIntOrNull() ?: return null
+        val eventYear = parts[0].toIntOrNull() ?: return null
         val month = parts[1].toIntOrNull() ?: return null
         val day = parts[2].toIntOrNull() ?: return null
 
         val today = Calendar.getInstance()
         val currentYear = today.get(Calendar.YEAR)
 
-        val birthdayThisYear = Calendar.getInstance().apply {
+        val eventThisYear = Calendar.getInstance().apply {
             set(Calendar.YEAR, currentYear)
             set(Calendar.MONTH, month - 1)
             set(Calendar.DAY_OF_MONTH, day)
@@ -333,23 +336,23 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
             set(Calendar.MILLISECOND, 0)
         }
 
-        var nextBirthdayYear = currentYear
-        // If birthday has already occurred this year, roll over to next year
-        if (birthdayThisYear.before(today) && birthdayThisYear.get(Calendar.DAY_OF_MONTH) != today.get(Calendar.DAY_OF_MONTH)) {
-            birthdayThisYear.add(Calendar.YEAR, 1)
-            nextBirthdayYear++
+        var nextEventYear = currentYear
+        if (eventThisYear.before(today) && eventThisYear.get(Calendar.DAY_OF_MONTH) != today.get(Calendar.DAY_OF_MONTH)) {
+            eventThisYear.add(Calendar.YEAR, 1)
+            nextEventYear++
         }
 
-        val diffMillis = birthdayThisYear.timeInMillis - today.timeInMillis
+        val diffMillis = eventThisYear.timeInMillis - today.timeInMillis
         val days = (diffMillis / (1000 * 60 * 60 * 24)).toInt()
 
-        val turningAge = nextBirthdayYear - birthYear
+        val yearsPassed = nextEventYear - eventYear
 
-        return BirthdayReminder(
+        return EventReminder(
             member = member,
-            turningAge = turningAge,
+            eventType = eventType,
+            years = yearsPassed,
             daysRemaining = if (days < 0) 0 else days,
-            birthdateStr = dob
+            dateStr = dateStr
         )
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.util.Calendar
 
@@ -50,6 +51,9 @@ fun CreateFamilyScreen(
     val additionalMembers = remember { mutableStateListOf<DraftMember>() }
     
     var showAddMemberDialog by remember { mutableStateOf(false) }
+    var showLinkFamilyDialog by remember { mutableStateOf(false) }
+
+    val familyUnits by viewModel.familyUnits.collectAsState()
 
     if (headDob.isBlank()) {
         headDob = String.format("%d-%02d-%02d", 1980, 1, 1) // logical starting DOB
@@ -109,9 +113,15 @@ fun CreateFamilyScreen(
 
             OutlinedTextField(
                 value = relatedFamiliesText,
-                onValueChange = { relatedFamiliesText = it },
-                label = { Text("Linked Families & Relationships") },
-                placeholder = { Text("e.g. Parents: Johnson Family") },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Linked Family") },
+                placeholder = { Text("None linked yet") },
+                trailingIcon = {
+                    IconButton(onClick = { showLinkFamilyDialog = true }) {
+                        Icon(Icons.Filled.Link, contentDescription = "Link Family")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -237,6 +247,44 @@ fun CreateFamilyScreen(
                 Text("Save Family", style = MaterialTheme.typography.titleMedium)
             }
         }
+    }
+
+    if (showLinkFamilyDialog && familyUnits.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { showLinkFamilyDialog = false },
+            title = { Text("Link Existing Family") },
+            text = {
+                LazyColumn {
+                    items(familyUnits) { unit ->
+                        TextButton(
+                            onClick = {
+                                relatedFamiliesText = unit.family.familyName
+                                showLinkFamilyDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(unit.family.familyName, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLinkFamilyDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    } else if (showLinkFamilyDialog) {
+        AlertDialog(
+            onDismissRequest = { showLinkFamilyDialog = false },
+            title = { Text("Link Existing Family") },
+            text = { Text("There are no other families to link. Create some families first.") },
+            confirmButton = {
+                TextButton(onClick = { showLinkFamilyDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     if (showAddMemberDialog) {

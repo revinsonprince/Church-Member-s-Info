@@ -51,7 +51,7 @@ fun DashboardScreen(
     onNavigateToProfile: (Long) -> Unit,
     onNavigateToCreateFamily: () -> Unit
 ) {
-    val birthdayReminders by viewModel.upcomingBirthdays.collectAsState()
+    val eventReminders by viewModel.upcomingEvents.collectAsState()
     val familyCount by viewModel.families.collectAsState()
     val memberCount by viewModel.members.collectAsState()
     val visitLogs by viewModel.allVisitLogs.collectAsState()
@@ -106,7 +106,7 @@ fun DashboardScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Upcoming Birthdays (30 Days)",
+                text = "Upcoming Events (30 Days)",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -121,8 +121,8 @@ fun DashboardScreen(
             }
         }
 
-        // Birthday Timeline / Reminders
-        if (birthdayReminders.isEmpty()) {
+        // Event Timeline / Reminders
+        if (eventReminders.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,13 +138,13 @@ fun DashboardScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Icon(
-                        Icons.Outlined.Cake,
+                        Icons.Outlined.Event,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(40.dp)
                     )
                     Text(
-                        text = "No birthdays in the next 30 days.",
+                        text = "No birthdays or anniversaries in the next 30 days.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.secondary,
                         textAlign = TextAlign.Center
@@ -153,8 +153,8 @@ fun DashboardScreen(
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                birthdayReminders.forEach { reminder ->
-                    BirthdayItem(reminder = reminder, onClick = { onNavigateToProfile(reminder.member.id) })
+                eventReminders.forEach { reminder ->
+                    EventItem(reminder = reminder, onClick = { onNavigateToProfile(reminder.member.id) })
                 }
             }
         }
@@ -200,12 +200,13 @@ fun StatsCard(
 }
 
 @Composable
-fun BirthdayItem(reminder: BirthdayReminder, onClick: () -> Unit) {
+fun EventItem(reminder: EventReminder, onClick: () -> Unit) {
+    val isBirthday = reminder.eventType == "Birthday"
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .testTag("birthday_item_${reminder.member.id}"),
+            .testTag("event_item_${reminder.member.id}"),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shape = RoundedCornerShape(16.dp)
@@ -229,7 +230,7 @@ fun BirthdayItem(reminder: BirthdayReminder, onClick: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Filled.Cake,
+                        if (isBirthday) Icons.Filled.Cake else Icons.Filled.Favorite,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -239,8 +240,9 @@ fun BirthdayItem(reminder: BirthdayReminder, onClick: () -> Unit) {
                         text = reminder.member.fullName,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
+                    val actionText = if (isBirthday) "Turning ${reminder.years}" else "${reminder.years}th Anniversary"
                     Text(
-                        text = "Turning ${reminder.turningAge} on ${reminder.birthdateStr.substring(5)}",
+                        text = "$actionText on ${reminder.dateStr.substring(5)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
