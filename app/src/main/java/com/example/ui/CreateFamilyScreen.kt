@@ -27,7 +27,8 @@ data class DraftMember(
     val lastName: String,
     val role: String,
     val dateOfBirth: String,
-    val weddingDate: String?
+    val weddingDate: String?,
+    val phoneNumber: String? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,19 +112,16 @@ fun CreateFamilyScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = relatedFamiliesText,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Linked Family") },
-                placeholder = { Text("None linked yet") },
-                trailingIcon = {
-                    IconButton(onClick = { showLinkFamilyDialog = true }) {
-                        Icon(Icons.Filled.Link, contentDescription = "Link Family")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+            OutlinedButton(
+                onClick = { showLinkFamilyDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Icon(Icons.Filled.Link, contentDescription = "Link Family")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (relatedFamiliesText.isBlank()) "Link Existing Family" else "Linked: $relatedFamiliesText")
+            }
 
             // DOB with native calendar launcher
             OutlinedTextField(
@@ -307,6 +305,7 @@ fun AddDialogMember(
     var fmFirstName by remember { mutableStateOf("") }
     var fmLastName by remember { mutableStateOf("") }
     var fmRole by remember { mutableStateOf("Spouse") }
+    var fmPhone by remember { mutableStateOf("") }
     var fmDob by remember { mutableStateOf("2000-01-01") }
     var fmWedding by remember { mutableStateOf("") }
 
@@ -325,6 +324,12 @@ fun AddDialogMember(
                     value = fmLastName,
                     onValueChange = { fmLastName = it },
                     label = { Text("Last Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = fmPhone,
+                    onValueChange = { fmPhone = it },
+                    label = { Text("Phone Number (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -380,12 +385,37 @@ fun AddDialogMember(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (fmRole == "Spouse") {
+                    OutlinedTextField(
+                        value = fmWedding,
+                        onValueChange = { fmWedding = it },
+                        label = { Text("Wedding Date (Optional)") },
+                        placeholder = { Text("YYYY-MM-DD") },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                val wedParts = fmWedding.takeIf { it.isNotBlank() }?.split("-") ?: emptyList()
+                                val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
+                                val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
+                                val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
+                                DatePickerDialog(
+                                    context,
+                                    { _, y, m, d -> fmWedding = String.format("%d-%02d-%02d", y, m + 1, d) },
+                                    year, month, day
+                                ).show()
+                            }) {
+                                Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         confirmButton = {
             Button(onClick = {
                 if (fmFirstName.isNotBlank()) {
-                    onAdd(DraftMember(fmFirstName, fmLastName, fmRole, fmDob, fmWedding.takeIf { it.isNotBlank() }))
+                    onAdd(DraftMember(fmFirstName, fmLastName, fmRole, fmDob, fmWedding.takeIf { fmRole == "Spouse" && it.isNotBlank() }, fmPhone.takeIf { it.isNotBlank() }))
                 }
             }) {
                 Text("Add")

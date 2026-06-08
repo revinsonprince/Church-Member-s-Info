@@ -108,7 +108,8 @@ fun DashboardScreen(
             Text(
                 text = "Upcoming Events (30 Days)",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
             )
             FilledTonalButton(
                 onClick = onNavigateToCreateFamily,
@@ -286,10 +287,12 @@ fun DirectoryScreen(
     viewModel: MainViewModel,
     onNavigateToProfile: (Long) -> Unit,
     onNavigateToCreateFamily: () -> Unit,
-    onNavigateToAddMemberToFamily: (Long) -> Unit
+    onNavigateToAddMemberToFamily: (Long) -> Unit // Deprecating, using built-in
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val familyUnits by viewModel.filteredFamilyUnits.collectAsState()
+    
+    var activeFamilyToAddMember by remember { mutableStateOf<FamilyUnit?>(null) }
 
     Column(
         modifier = Modifier
@@ -366,11 +369,23 @@ fun DirectoryScreen(
                     FamilyGroupCard(
                         unit = unit,
                         onMemberClick = onNavigateToProfile,
-                        onAddMemberClick = { onNavigateToAddMemberToFamily(unit.family.id) }
+                        onAddMemberClick = { activeFamilyToAddMember = unit },
+                        onDeleteFamilyClick = { viewModel.deleteFamily(unit) }
                     )
                 }
             }
         }
+    }
+
+    // Embed AddDialogMember here for quick additions
+    activeFamilyToAddMember?.let { unit ->
+        AddDialogMember(
+            onDismiss = { activeFamilyToAddMember = null },
+            onAdd = { draft ->
+                viewModel.addDraftMemberToFamily(unit.family.id, unit.head, draft)
+                activeFamilyToAddMember = null
+            }
+        )
     }
 }
 
@@ -378,7 +393,8 @@ fun DirectoryScreen(
 fun FamilyGroupCard(
     unit: FamilyUnit,
     onMemberClick: (Long) -> Unit,
-    onAddMemberClick: () -> Unit
+    onAddMemberClick: () -> Unit,
+    onDeleteFamilyClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -395,7 +411,7 @@ fun FamilyGroupCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = unit.family.familyName,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
@@ -409,17 +425,22 @@ fun FamilyGroupCard(
                         )
                     }
                 }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Unit Count: ${unit.members.size}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Unit Count: ${unit.members.size}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    IconButton(onClick = onDeleteFamilyClick, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Delete Family", tint = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
 
@@ -437,7 +458,7 @@ fun FamilyGroupCard(
                     text = "HOUSEHOLD MEMBERS",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.weight(1f).padding(bottom = 8.dp)
                 )
                 TextButton(
                     onClick = onAddMemberClick,
@@ -1454,9 +1475,9 @@ fun BackupScreen(
             if (isLoaderVisible) {
                 CircularProgressIndicator()
             } else {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Export trigger (Satisfies file export file sharing requirement)
                     Button(
@@ -1467,7 +1488,7 @@ fun BackupScreen(
                         },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(56.dp)
                             .testTag("export_backup_button")
                     ) {
@@ -1481,7 +1502,7 @@ fun BackupScreen(
                         onClick = { selectJsonLauncher.launch("application/json") },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(56.dp)
                             .testTag("import_backup_button")
                     ) {

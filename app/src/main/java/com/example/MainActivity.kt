@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Cake
@@ -137,13 +139,15 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
-                    contentWindowInsets = WindowInsets.navigationBars
+                    contentWindowInsets = WindowInsets.safeDrawing
                 ) { innerPadding ->
                     // Navigation Router Controller
                     BoxWithNavigation(
                         currentScreen = currentScreen,
                         viewModel = viewModel,
-                        modifier = Modifier.padding(innerPadding),
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .consumeWindowInsets(innerPadding),
                         onNavigate = { navigateTo(it) },
                         onBack = { goBack() }
                     )

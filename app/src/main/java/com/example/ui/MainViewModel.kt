@@ -145,7 +145,7 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                     firstName = m.firstName,
                     lastName = m.lastName,
                     role = m.role,
-                    phoneNumber = headPhone, // Inherits phone
+                    phoneNumber = m.phoneNumber ?: headPhone, // Use provided phone or inherit
                     address = headAddress,   // Inherits address
                     dateOfBirth = m.dateOfBirth.ifBlank { "2000-01-01" },
                     weddingDate = m.weddingDate,
@@ -237,6 +237,32 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 }
             }
             onComplete()
+        }
+    }
+
+    fun deleteFamily(familyUnit: FamilyUnit) {
+        viewModelScope.launch {
+            familyUnit.members.forEach { m -> repository.deleteMember(m) }
+            repository.deleteFamily(familyUnit.family)
+        }
+    }
+
+    fun addDraftMemberToFamily(familyId: Long, headMember: Member?, draft: DraftMember) {
+        viewModelScope.launch {
+            val phone = draft.phoneNumber?.takeIf { it.isNotBlank() } ?: headMember?.phoneNumber ?: ""
+            val address = headMember?.address ?: ""
+            val newMember = Member(
+                familyId = familyId,
+                firstName = draft.firstName,
+                lastName = draft.lastName,
+                role = draft.role,
+                phoneNumber = phone,
+                address = address,
+                dateOfBirth = draft.dateOfBirth.ifBlank { "2000-01-01" },
+                weddingDate = draft.weddingDate,
+                lastVisitedDate = null
+            )
+            repository.insertMember(newMember)
         }
     }
 
