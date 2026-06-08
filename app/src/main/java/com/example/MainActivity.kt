@@ -41,7 +41,8 @@ import java.util.concurrent.TimeUnit
 sealed class Screen {
     object Dashboard : Screen()
     object Directory : Screen()
-    data class AddEditMember(val memberId: Long?) : Screen()
+    object CreateFamily : Screen()
+    data class AddEditMember(val memberId: Long?, val familyIdToJoin: Long? = null) : Screen()
     data class MemberProfile(val memberId: Long) : Screen()
     object Backup : Screen()
 }
@@ -175,19 +176,28 @@ fun BoxWithNavigation(
                 DashboardScreen(
                     viewModel = viewModel,
                     onNavigateToProfile = { onNavigate(Screen.MemberProfile(it)) },
-                    onNavigateToAddMember = { onNavigate(Screen.AddEditMember(null)) }
+                    onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
                 )
             }
             is Screen.Directory -> {
                 DirectoryScreen(
                     viewModel = viewModel,
                     onNavigateToProfile = { onNavigate(Screen.MemberProfile(it)) },
-                    onNavigateToAddMember = { onNavigate(Screen.AddEditMember(null)) }
+                    onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) },
+                    onNavigateToAddMemberToFamily = { onNavigate(Screen.AddEditMember(null, it)) }
+                )
+            }
+            is Screen.CreateFamily -> {
+                CreateFamilyScreen(
+                    viewModel = viewModel,
+                    onComplete = { onBack() },
+                    onBack = { onBack() }
                 )
             }
             is Screen.AddEditMember -> {
                 AddEditMemberScreen(
                     memberId = currentScreen.memberId,
+                    familyIdToJoin = currentScreen.familyIdToJoin,
                     viewModel = viewModel,
                     onComplete = { onBack() },
                     onBack = { onBack() }

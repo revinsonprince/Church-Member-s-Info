@@ -104,6 +104,56 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         }
     }
 
+    fun createFamilyWithMembers(
+        headFirstName: String,
+        headLastName: String,
+        headPhone: String,
+        headAddress: String,
+        headDob: String,
+        headWeddingDate: String?,
+        relatedFamilies: String?,
+        additionalMembers: List<DraftMember>,
+        onComplete: () -> Unit
+    ) {
+        viewModelScope.launch {
+            val familyName = "$headFirstName's Family"
+            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies)
+            val familyId = repository.insertFamily(newFamily)
+
+            val headMember = Member(
+                familyId = familyId,
+                firstName = headFirstName,
+                lastName = headLastName,
+                role = "Head",
+                phoneNumber = headPhone,
+                address = headAddress,
+                dateOfBirth = headDob.ifBlank { "2000-01-01" },
+                weddingDate = headWeddingDate,
+                lastVisitedDate = null
+            )
+            val headId = repository.insertMember(headMember)
+            
+            // Update family with head ID
+            repository.updateFamily(newFamily.copy(id = familyId, headMemberId = headId))
+
+            additionalMembers.forEach { m ->
+                val newMember = Member(
+                    familyId = familyId,
+                    firstName = m.firstName,
+                    lastName = m.lastName,
+                    role = m.role,
+                    phoneNumber = headPhone, // Inherits phone
+                    address = headAddress,   // Inherits address
+                    dateOfBirth = m.dateOfBirth.ifBlank { "2000-01-01" },
+                    weddingDate = m.weddingDate,
+                    lastVisitedDate = null
+                )
+                repository.insertMember(newMember)
+            }
+            onComplete()
+        }
+    }
+
     // Complete pipeline to save contact member
     fun saveMember(
         memberId: Long,
@@ -126,7 +176,7 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 }
                 is FamilyOption.CreateNewFamily -> {
                     // Create Family unit first
-                    val newFamilyName = familyOption.familyName.ifBlank { "$lastName Family" }
+                    val newFamilyName = familyOption.familyName.ifBlank { "$firstName's Family" }
                     val newFamily = Family(familyName = newFamilyName)
                     finalFamilyId = repository.insertFamily(newFamily)
                 }

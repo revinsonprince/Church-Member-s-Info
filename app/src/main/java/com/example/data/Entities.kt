@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 data class Family(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val familyName: String,
-    val headMemberId: Long = 0
+    val headMemberId: Long = 0,
+    val relatedFamilies: String? = null
 )
 
 @Entity(tableName = "members")

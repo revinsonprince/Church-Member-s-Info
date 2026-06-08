@@ -49,7 +49,7 @@ import java.util.Calendar
 fun DashboardScreen(
     viewModel: MainViewModel,
     onNavigateToProfile: (Long) -> Unit,
-    onNavigateToAddMember: () -> Unit
+    onNavigateToCreateFamily: () -> Unit
 ) {
     val birthdayReminders by viewModel.upcomingBirthdays.collectAsState()
     val familyCount by viewModel.families.collectAsState()
@@ -111,13 +111,13 @@ fun DashboardScreen(
                 color = MaterialTheme.colorScheme.primary
             )
             FilledTonalButton(
-                onClick = onNavigateToAddMember,
+                onClick = onNavigateToCreateFamily,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                modifier = Modifier.testTag("onboard_member_button")
+                modifier = Modifier.testTag("onboard_family_button")
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Add Member", style = MaterialTheme.typography.labelSmall)
+                Text("Create Family", style = MaterialTheme.typography.labelSmall)
             }
         }
 
@@ -283,7 +283,8 @@ fun BirthdayItem(reminder: BirthdayReminder, onClick: () -> Unit) {
 fun DirectoryScreen(
     viewModel: MainViewModel,
     onNavigateToProfile: (Long) -> Unit,
-    onNavigateToAddMember: () -> Unit
+    onNavigateToCreateFamily: () -> Unit,
+    onNavigateToAddMemberToFamily: (Long) -> Unit
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val familyUnits by viewModel.filteredFamilyUnits.collectAsState()
@@ -349,8 +350,8 @@ fun DirectoryScreen(
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = onNavigateToAddMember) {
-                        Text("Add Member Instead")
+                    Button(onClick = onNavigateToCreateFamily) {
+                        Text("Create Family Instead")
                     }
                 }
             }
@@ -362,7 +363,8 @@ fun DirectoryScreen(
                 items(familyUnits) { unit ->
                     FamilyGroupCard(
                         unit = unit,
-                        onMemberClick = onNavigateToProfile
+                        onMemberClick = onNavigateToProfile,
+                        onAddMemberClick = { onNavigateToAddMemberToFamily(unit.family.id) }
                     )
                 }
             }
@@ -373,7 +375,8 @@ fun DirectoryScreen(
 @Composable
 fun FamilyGroupCard(
     unit: FamilyUnit,
-    onMemberClick: (Long) -> Unit
+    onMemberClick: (Long) -> Unit,
+    onAddMemberClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -423,12 +426,24 @@ fun FamilyGroupCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Household member lists nested inside (Satisfies search matching display unit requirement)
-            Text(
-                text = "HOUSEHOLD MEMBERS",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "HOUSEHOLD MEMBERS",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                TextButton(
+                    onClick = onAddMemberClick,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Add Member")
+                }
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 unit.members.forEach { m ->
@@ -1051,6 +1066,7 @@ fun AddVisitLogDialog(
 @Composable
 fun AddEditMemberScreen(
     memberId: Long?,
+    familyIdToJoin: Long? = null,
     viewModel: MainViewModel,
     onComplete: () -> Unit,
     onBack: () -> Unit
@@ -1063,16 +1079,16 @@ fun AddEditMemberScreen(
 
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("Head") } // Default role
+    var role by remember { mutableStateOf(if (familyIdToJoin != null) "Other" else "Head") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var weddingDate by remember { mutableStateOf("") }
 
     // Relationship matching options
-    var familySelectionMode by remember { mutableStateOf(0) } // 0 = Create New, 1 = Join Existing
+    var familySelectionMode by remember { mutableStateOf(if (familyIdToJoin != null) 1 else 0) } // 0 = Create New, 1 = Join Existing
     var newFamilyName by remember { mutableStateOf("") }
-    var selectedExistingFamilyId by remember { mutableStateOf(-1L) }
+    var selectedExistingFamilyId by remember { mutableStateOf(familyIdToJoin ?: -1L) }
 
     // On Edit initialization loader
     LaunchedEffect(memberId) {
@@ -1234,82 +1250,15 @@ fun AddEditMemberScreen(
             Text("RELATIONAL HOUSEHOLD GROUPING", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
 
             if (memberId == null || memberId == 0L) {
-                TabRow(
-                    selectedTabIndex = familySelectionMode,
-                    containerColor = Color.Transparent,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier.tabIndicatorOffset(tabPositions[familySelectionMode]),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                ) {
-                    Tab(
-                        selected = familySelectionMode == 0,
-                        onClick = { familySelectionMode = 0 },
-                        text = { Text("Create New Family") }
-                    )
-                    Tab(
-                        selected = familySelectionMode == 1,
-                        onClick = { familySelectionMode = 1 },
-                        text = { Text("Link Existing") }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                if (familySelectionMode == 0) {
-                    OutlinedTextField(
-                        value = newFamilyName,
-                        onValueChange = { newFamilyName = it },
-                        label = { Text("Family Name / Title") },
-                        placeholder = { Text("e.g. Smith Family, The Johnsons") },
-                        modifier = Modifier.fillMaxWidth().testTag("new_family_input")
-                    )
-                } else {
-                    if (families.isEmpty()) {
-                        Text(
-                            "There are no existing families, please choose 'Create New Family' to register the head member first.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    } else {
-                        var expandedFamilies by remember { mutableStateOf(false) }
-                        val selectedFamily = families.find { it.id == selectedExistingFamilyId }
-                        val currentText = selectedFamily?.familyName ?: "Select an existing family unit..."
-
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(
-                                value = currentText,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Associated Family") },
-                                trailingIcon = {
-                                    IconButton(onClick = { expandedFamilies = true }) {
-                                        Icon(Icons.Filled.ArrowDropDown, contentDescription = "Show existing family units")
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth().testTag("existing_family_dropdown")
-                            )
-                            DropdownMenu(
-                                expanded = expandedFamilies,
-                                onDismissRequest = { expandedFamilies = false }
-                            ) {
-                                families.forEach { f ->
-                                    val headOfFam = members.find { it.id == f.headMemberId }
-                                    val subtitleText = if (headOfFam != null) "(Head: ${headOfFam.fullName})" else "(No head registered)"
-                                    DropdownMenuItem(
-                                        text = { Text("${f.familyName} $subtitleText") },
-                                        onClick = {
-                                            selectedExistingFamilyId = f.id
-                                            expandedFamilies = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                // If we are strictly joining a specific family
+                val selectedFamily = families.find { it.id == familyIdToJoin }
+                OutlinedTextField(
+                    value = selectedFamily?.familyName ?: "Unknown Family",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Joining Family") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             } else {
                 Text(
                     "Note: Associated family matching is locked during edits. Re-onboard the contact to link to another house unit.",
@@ -1342,18 +1291,14 @@ fun AddEditMemberScreen(
                 onClick = {
                     if (firstName.isBlank() || lastName.isBlank()) {
                         Toast.makeText(context, "Please enter first and last name", Toast.LENGTH_SHORT).show()
-                    } else if (familySelectionMode == 1 && selectedExistingFamilyId == -1L && (memberId == null || memberId == 0L)) {
-                        Toast.makeText(context, "Please select an existing family unit", Toast.LENGTH_SHORT).show()
+                    } else if (memberId == null && selectedExistingFamilyId == -1L) {
+                        Toast.makeText(context, "Please ensure a family unit is selected", Toast.LENGTH_SHORT).show()
                     } else {
-                        val finalOption: FamilyOption = if (memberId != null && memberId != 0L) {
+                        val finalOption = if (memberId != null && memberId != 0L) {
                             val activeMember = members.find { it.id == memberId }
                             FamilyOption.JoinExisting(activeMember?.familyId ?: 0L)
                         } else {
-                            if (familySelectionMode == 0) {
-                                FamilyOption.CreateNewFamily(newFamilyName.ifBlank { "$lastName Family" })
-                            } else {
-                                FamilyOption.JoinExisting(selectedExistingFamilyId)
-                            }
+                            FamilyOption.JoinExisting(selectedExistingFamilyId)
                         }
 
                         viewModel.saveMember(
