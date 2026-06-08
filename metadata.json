@@ -1,0 +1,6 @@
+{
+  "name": "Mem Info",
+  "description": "A custom Android application for pastors to manage head of families, relational household units, birthday tracking, and record periodic house visit logs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
