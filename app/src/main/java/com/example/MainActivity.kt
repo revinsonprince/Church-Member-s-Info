@@ -180,7 +180,7 @@ fun BoxWithNavigation(
             is Screen.Dashboard -> {
                 DashboardScreen(
                     viewModel = viewModel,
-                    onNavigateToProfile = { onNavigate(Screen.MemberProfile(it)) },
+                    onNavigateToFamilyProfile = { onNavigate(Screen.FamilyProfile(it)) },
                     onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
                 )
             }

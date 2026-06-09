@@ -31,6 +31,7 @@ class BirthdayReminderWorker(
         val dao = database.churchDao()
 
         val members = dao.getAllMembersSync()
+        val families = dao.getAllFamiliesSync()
         val today = LocalDate.now()
 
         var notificationId = 1000
@@ -48,15 +49,17 @@ class BirthdayReminderWorker(
                     val daysUntil = ChronoUnit.DAYS.between(today, nextBirthday)
                     
                     if (daysUntil == 1L) {
-                        sendNotification(member, "Birthday", notificationId++)
+                        sendNotification(member.fullName, "Birthday", notificationId++)
                     }
                 } catch (e: DateTimeParseException) {
                     // Ignore invalid dates
                 }
             }
+        }
 
+        for (family in families) {
             // 2. Wedding Date Check
-            val weddingString = member.weddingDate
+            val weddingString = family.weddingDate
             if (!weddingString.isNullOrBlank()) {
                 try {
                     val wedding = LocalDate.parse(weddingString, DateTimeFormatter.ISO_LOCAL_DATE)
@@ -67,7 +70,7 @@ class BirthdayReminderWorker(
                     val daysUntil = ChronoUnit.DAYS.between(today, nextAnniv)
                     
                     if (daysUntil == 1L) {
-                        sendNotification(member, "Wedding Anniversary", notificationId++)
+                        sendNotification(family.familyName, "Wedding Anniversary", notificationId++)
                     }
                 } catch (e: DateTimeParseException) {
                     // Ignore invalid dates
@@ -78,7 +81,7 @@ class BirthdayReminderWorker(
         return Result.success()
     }
 
-    private fun sendNotification(member: Member, eventType: String, notificationId: Int) {
+    private fun sendNotification(name: String, eventType: String, notificationId: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             return
@@ -112,7 +115,7 @@ class BirthdayReminderWorker(
         val notification = NotificationCompat.Builder(applicationContext, channelId)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle("Upcoming $eventType")
-            .setContentText("Tomorrow is ${member.fullName}'s $eventType!")
+            .setContentText("Tomorrow is $name's $eventType!")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

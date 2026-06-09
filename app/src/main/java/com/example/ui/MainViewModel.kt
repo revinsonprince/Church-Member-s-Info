@@ -86,14 +86,14 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
             unit.members.forEach { m ->
                 val bday = calculateEventReminder(m, m.dateOfBirth, "Birthday")
                 if (bday != null && bday.daysRemaining in 0..30) reminders.add(bday)
-                
-                if (m.role.lowercase() == "spouse") {
-                    var wed = calculateEventReminder(m, m.weddingDate, "Anniversary")
-                    if (wed != null && wed.daysRemaining in 0..30) {
-                        val pairedNames = if (head != null) "${head.firstName} & ${m.firstName}" else m.firstName
-                        wed = wed.copy(pairedNames = pairedNames)
-                        reminders.add(wed)
-                    }
+            }
+            if (!unit.family.weddingDate.isNullOrBlank() && head != null) {
+                var wed = calculateEventReminder(head, unit.family.weddingDate, "Anniversary")
+                if (wed != null && wed.daysRemaining in 0..30) {
+                    val spouse = unit.members.find { it.role.lowercase() == "spouse" }
+                    val pairedNames = if (spouse != null) "${head.firstName} & ${spouse.firstName}" else unit.family.familyName
+                    wed = wed.copy(pairedNames = pairedNames)
+                    reminders.add(wed)
                 }
             }
         }
@@ -123,7 +123,7 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         headPhone: String,
         headAddress: String,
         headDob: String,
-        headWeddingDate: String?,
+        familyWeddingDate: String?,
         relatedFamilies: String?,
         additionalInfo: String?,
         additionalMembers: List<DraftMember>,
@@ -131,7 +131,7 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
     ) {
         viewModelScope.launch {
             val familyName = "$headFirstName's Family"
-            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies, additionalInfo = additionalInfo)
+            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies, additionalInfo = additionalInfo, weddingDate = familyWeddingDate)
             val familyId = repository.insertFamily(newFamily)
 
             val headMember = Member(
@@ -142,7 +142,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 phoneNumber = headPhone,
                 address = headAddress,
                 dateOfBirth = headDob.ifBlank { "2000-01-01" },
-                weddingDate = headWeddingDate,
                 lastVisitedDate = null
             )
             val headId = repository.insertMember(headMember)
@@ -159,7 +158,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                     phoneNumber = m.phoneNumber ?: headPhone, // Use provided phone or inherit
                     address = headAddress,   // Inherits address
                     dateOfBirth = m.dateOfBirth.ifBlank { "2000-01-01" },
-                    weddingDate = m.weddingDate,
                     lastVisitedDate = null
                 )
                 repository.insertMember(newMember)
@@ -178,7 +176,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         phoneNumber: String,
         address: String,
         dateOfBirth: String,
-        weddingDate: String?,
         onComplete: () -> Unit
     ) {
         viewModelScope.launch {
@@ -205,7 +202,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 phoneNumber = phoneNumber,
                 address = address,
                 dateOfBirth = dateOfBirth.ifBlank { "2000-01-01" },
-                weddingDate = weddingDate,
                 lastVisitedDate = if (memberId != 0L) repository.getMemberById(memberId)?.lastVisitedDate else null
             )
 
@@ -270,7 +266,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 phoneNumber = phone,
                 address = address,
                 dateOfBirth = draft.dateOfBirth.ifBlank { "2000-01-01" },
-                weddingDate = draft.weddingDate,
                 lastVisitedDate = null
             )
             repository.insertMember(newMember)

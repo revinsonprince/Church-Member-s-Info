@@ -27,7 +27,6 @@ data class DraftMember(
     val lastName: String,
     val role: String,
     val dateOfBirth: String,
-    val weddingDate: String?,
     val phoneNumber: String? = null
 )
 
@@ -51,6 +50,7 @@ fun CreateFamilyScreen(
     var headDob by remember { mutableStateOf("") }
     var relatedFamiliesText by remember { mutableStateOf("") }
     var familyAdditionalInfo by remember { mutableStateOf("") }
+    var familyWeddingDate by remember { mutableStateOf("") }
 
     val additionalMembers = remember { mutableStateListOf<DraftMember>() }
     
@@ -140,6 +140,34 @@ fun CreateFamilyScreen(
                 value = familyAdditionalInfo,
                 onValueChange = { familyAdditionalInfo = it },
                 label = { Text("Additional Information") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = familyWeddingDate,
+                onValueChange = { familyWeddingDate = it },
+                label = { Text("Family Wedding Date") },
+                placeholder = { Text("YYYY-MM-DD") },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        val wedParts = familyWeddingDate.split("-")
+                        val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
+                        val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
+                        val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
+
+                        DatePickerDialog(
+                            context,
+                            { _, y, m, d ->
+                                familyWeddingDate = String.format("%d-%02d-%02d", y, m + 1, d)
+                            },
+                            year,
+                            month,
+                            day
+                        ).show()
+                    }) {
+                        Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -238,7 +266,7 @@ fun CreateFamilyScreen(
                             headPhone,
                             combinedAddress,
                             headDob,
-                            null, // wedding date only on spouse now
+                            familyWeddingDate.takeIf { it.isNotBlank() },
                             relatedFamiliesText.takeIf { it.isNotBlank() },
                             familyAdditionalInfo.takeIf { it.isNotBlank() },
                             additionalMembers,
@@ -314,7 +342,6 @@ fun AddDialogMember(
     var fmRole by remember { mutableStateOf("Spouse") }
     var fmPhone by remember { mutableStateOf("") }
     var fmDob by remember { mutableStateOf("2000-01-01") }
-    var fmWedding by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -392,37 +419,12 @@ fun AddDialogMember(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                if (fmRole == "Spouse") {
-                    OutlinedTextField(
-                        value = fmWedding,
-                        onValueChange = { fmWedding = it },
-                        label = { Text("Wedding Date (Optional)") },
-                        placeholder = { Text("YYYY-MM-DD") },
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                val wedParts = fmWedding.takeIf { it.isNotBlank() }?.split("-") ?: emptyList()
-                                val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
-                                val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
-                                val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
-                                DatePickerDialog(
-                                    context,
-                                    { _, y, m, d -> fmWedding = String.format("%d-%02d-%02d", y, m + 1, d) },
-                                    year, month, day
-                                ).show()
-                            }) {
-                                Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
         },
         confirmButton = {
             Button(onClick = {
                 if (fmFirstName.isNotBlank()) {
-                    onAdd(DraftMember(fmFirstName, fmLastName, fmRole, fmDob, fmWedding.takeIf { fmRole == "Spouse" && it.isNotBlank() }, fmPhone.takeIf { it.isNotBlank() }))
+                    onAdd(DraftMember(fmFirstName, fmLastName, fmRole, fmDob, fmPhone.takeIf { it.isNotBlank() }))
                 }
             }) {
                 Text("Add")

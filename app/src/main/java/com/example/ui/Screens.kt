@@ -48,7 +48,7 @@ import java.util.Calendar
 @Composable
 fun DashboardScreen(
     viewModel: MainViewModel,
-    onNavigateToProfile: (Long) -> Unit,
+    onNavigateToFamilyProfile: (Long) -> Unit,
     onNavigateToCreateFamily: () -> Unit
 ) {
     val eventReminders by viewModel.upcomingEvents.collectAsState()
@@ -155,7 +155,7 @@ fun DashboardScreen(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 eventReminders.forEach { reminder ->
-                    EventItem(reminder = reminder, onClick = { onNavigateToProfile(reminder.member.id) })
+                    EventItem(reminder = reminder, onClick = { onNavigateToFamilyProfile(reminder.member.familyId) })
                 }
             }
         }
@@ -550,6 +550,13 @@ fun FamilyProfileScreen(
                                 value = familyUnit.family.additionalInfo
                             )
                         }
+                        if (!familyUnit.family.weddingDate.isNullOrBlank()) {
+                            ContactFieldRow(
+                                icon = Icons.Outlined.Favorite,
+                                label = "Family Wedding Date",
+                                value = familyUnit.family.weddingDate
+                            )
+                        }
                     }
                 }
             }
@@ -652,7 +659,6 @@ fun FamilyProfileScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Role: ${mem.role}")
                         Text("Birth Date: ${mem.dateOfBirth}")
-                        mem.weddingDate?.let { wed -> Text("Wedding Date: $wed") }
                         if (mem.phoneNumber.isNotBlank()) Text("Phone: ${mem.phoneNumber}")
                         if (mem.address.isNotBlank()) Text("Address: ${mem.address}")
                     }
@@ -1237,7 +1243,6 @@ fun AddEditMemberScreen(
     var city by remember { mutableStateOf("") }
     var zip by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-    var weddingDate by remember { mutableStateOf("") }
 
     // Relationship matching options
     var familySelectionMode by remember { mutableStateOf(if (familyIdToJoin != null) 1 else 0) } // 0 = Create New, 1 = Join Existing
@@ -1261,7 +1266,6 @@ fun AddEditMemberScreen(
                 zip = addressParts.getOrNull(3) ?: ""
 
                 dob = m.dateOfBirth
-                weddingDate = m.weddingDate ?: ""
 
                 val fam = families.find { it.id == m.familyId }
                 if (fam != null) {
@@ -1342,37 +1346,6 @@ fun AddEditMemberScreen(
                 },
                 modifier = Modifier.fillMaxWidth().testTag("dob_input")
             )
-
-            if (role == "Spouse") {
-                // Wedding Date
-                OutlinedTextField(
-                    value = weddingDate,
-                    onValueChange = { weddingDate = it },
-                    label = { Text("Wedding Date (Optional)") },
-                    placeholder = { Text("YYYY-MM-DD") },
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            val wedParts = weddingDate.takeIf { it.isNotBlank() }?.split("-") ?: emptyList()
-                            val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
-                            val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
-                            val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
-
-                            DatePickerDialog(
-                                context,
-                                { _, y, m, d ->
-                                    weddingDate = String.format("%d-%02d-%02d", y, m + 1, d)
-                                },
-                                year,
-                                month,
-                                day
-                            ).show()
-                        }) {
-                            Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("wedding_input")
-                )
-            }
 
             // Family Role Selector (Head, Spouse, Child, Parent, Sibling, Grandparent, Other)
             Text("FAMILY ROLE ASSIGNMENT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
@@ -1494,7 +1467,6 @@ fun AddEditMemberScreen(
                             phoneNumber = phone,
                             address = combinedAddress,
                             dateOfBirth = dob,
-                            weddingDate = if (role == "Spouse") weddingDate else null,
                             onComplete = onComplete
                         )
                     }

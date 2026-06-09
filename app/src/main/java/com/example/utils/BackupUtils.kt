@@ -36,6 +36,9 @@ object BackupUtils {
                 fObj.put("id", f.id)
                 fObj.put("familyName", f.familyName)
                 fObj.put("headMemberId", f.headMemberId)
+                fObj.put("relatedFamilies", f.relatedFamilies ?: JSONObject.NULL)
+                fObj.put("additionalInfo", f.additionalInfo ?: JSONObject.NULL)
+                fObj.put("weddingDate", f.weddingDate ?: JSONObject.NULL)
                 familiesArray.put(fObj)
             }
             root.put("families", familiesArray)
@@ -52,7 +55,6 @@ object BackupUtils {
                 mObj.put("phoneNumber", m.phoneNumber)
                 mObj.put("address", m.address)
                 mObj.put("dateOfBirth", m.dateOfBirth)
-                mObj.put("weddingDate", m.weddingDate ?: JSONObject.NULL)
                 mObj.put("lastVisitedDate", m.lastVisitedDate ?: JSONObject.NULL)
                 membersArray.put(mObj)
             }
@@ -120,7 +122,10 @@ object BackupUtils {
                         Family(
                             id = obj.optLong("id"),
                             familyName = obj.optString("familyName"),
-                            headMemberId = obj.optLong("headMemberId")
+                            headMemberId = obj.optLong("headMemberId"),
+                            relatedFamilies = if (obj.isNull("relatedFamilies")) null else obj.optString("relatedFamilies"),
+                            additionalInfo = if (obj.isNull("additionalInfo")) null else obj.optString("additionalInfo"),
+                            weddingDate = if (obj.isNull("weddingDate")) null else obj.optString("weddingDate")
                         )
                     )
                 }
@@ -141,7 +146,6 @@ object BackupUtils {
                             phoneNumber = obj.optString("phoneNumber"),
                             address = obj.optString("address"),
                             dateOfBirth = obj.optString("dateOfBirth"),
-                            weddingDate = if (obj.isNull("weddingDate")) null else obj.optString("weddingDate"),
                             lastVisitedDate = if (obj.isNull("lastVisitedDate")) null else obj.optString("lastVisitedDate")
                         )
                     )

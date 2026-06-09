@@ -10,6 +10,9 @@ interface ChurchDao {
     @Query("SELECT * FROM families ORDER BY familyName ASC")
     fun getAllFamilies(): Flow<List<Family>>
 
+    @Query("SELECT * FROM families ORDER BY familyName ASC")
+    suspend fun getAllFamiliesSync(): List<Family>
+
     @Query("SELECT * FROM families WHERE id = :familyId")
     suspend fun getFamilyById(familyId: Long): Family?
 
