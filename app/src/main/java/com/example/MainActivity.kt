@@ -46,6 +46,7 @@ sealed class Screen {
     object CreateFamily : Screen()
     data class AddEditMember(val memberId: Long?, val familyIdToJoin: Long? = null) : Screen()
     data class MemberProfile(val memberId: Long) : Screen()
+    data class FamilyProfile(val familyId: Long) : Screen()
     object Backup : Screen()
 }
 
@@ -186,9 +187,8 @@ fun BoxWithNavigation(
             is Screen.Directory -> {
                 DirectoryScreen(
                     viewModel = viewModel,
-                    onNavigateToProfile = { onNavigate(Screen.MemberProfile(it)) },
-                    onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) },
-                    onNavigateToAddMemberToFamily = { onNavigate(Screen.AddEditMember(null, it)) }
+                    onNavigateToFamilyProfile = { onNavigate(Screen.FamilyProfile(it)) },
+                    onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
                 )
             }
             is Screen.CreateFamily -> {
@@ -212,6 +212,13 @@ fun BoxWithNavigation(
                     memberId = currentScreen.memberId,
                     viewModel = viewModel,
                     onNavigateToEdit = { onNavigate(Screen.AddEditMember(it)) },
+                    onBack = { onBack() }
+                )
+            }
+            is Screen.FamilyProfile -> {
+                FamilyProfileScreen(
+                    familyId = currentScreen.familyId,
+                    viewModel = viewModel,
                     onBack = { onBack() }
                 )
             }

@@ -238,7 +238,7 @@ fun EventItem(reminder: EventReminder, onClick: () -> Unit) {
                 }
                 Column {
                     Text(
-                        text = reminder.member.fullName,
+                        text = if (isBirthday || reminder.pairedNames == null) reminder.member.fullName else reminder.pairedNames,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     val actionText = if (isBirthday) "Turning ${reminder.years}" else "${reminder.years}th Anniversary"
@@ -285,14 +285,11 @@ fun EventItem(reminder: EventReminder, onClick: () -> Unit) {
 @Composable
 fun DirectoryScreen(
     viewModel: MainViewModel,
-    onNavigateToProfile: (Long) -> Unit,
-    onNavigateToCreateFamily: () -> Unit,
-    onNavigateToAddMemberToFamily: (Long) -> Unit // Deprecating, using built-in
+    onNavigateToFamilyProfile: (Long) -> Unit,
+    onNavigateToCreateFamily: () -> Unit
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val familyUnits by viewModel.filteredFamilyUnits.collectAsState()
-    
-    var activeFamilyToAddMember by remember { mutableStateOf<FamilyUnit?>(null) }
 
     Column(
         modifier = Modifier
@@ -368,38 +365,28 @@ fun DirectoryScreen(
                 items(familyUnits) { unit ->
                     FamilyGroupCard(
                         unit = unit,
-                        onMemberClick = onNavigateToProfile,
-                        onAddMemberClick = { activeFamilyToAddMember = unit },
+                        searchQuery = searchQuery,
+                        onFamilyClick = { onNavigateToFamilyProfile(unit.family.id) },
                         onDeleteFamilyClick = { viewModel.deleteFamily(unit) }
                     )
                 }
             }
         }
     }
-
-    // Embed AddDialogMember here for quick additions
-    activeFamilyToAddMember?.let { unit ->
-        AddDialogMember(
-            onDismiss = { activeFamilyToAddMember = null },
-            onAdd = { draft ->
-                viewModel.addDraftMemberToFamily(unit.family.id, unit.head, draft)
-                activeFamilyToAddMember = null
-            }
-        )
-    }
 }
 
 @Composable
 fun FamilyGroupCard(
     unit: FamilyUnit,
-    onMemberClick: (Long) -> Unit,
-    onAddMemberClick: () -> Unit,
+    searchQuery: String,
+    onFamilyClick: () -> Unit,
     onDeleteFamilyClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("family_card_${unit.family.id}"),
+            .testTag("family_card_${unit.family.id}")
+            .clickable { onFamilyClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shape = RoundedCornerShape(24.dp)
@@ -444,100 +431,26 @@ fun FamilyGroupCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Household member lists nested inside (Satisfies search matching display unit requirement)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "HOUSEHOLD MEMBERS",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f).padding(bottom = 8.dp)
-                )
-                TextButton(
-                    onClick = onAddMemberClick,
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("Add Member")
+            if (searchQuery.isNotBlank()) {
+                val matchingMembers = unit.members.filter { m ->
+                    m.fullName.contains(searchQuery, ignoreCase = true) ||
+                    m.address.contains(searchQuery, ignoreCase = true) ||
+                    m.phoneNumber.contains(searchQuery, ignoreCase = true)
                 }
-            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                unit.members.forEach { m ->
-                    Row(
+                if (matchingMembers.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 6.dp)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { onMemberClick(m.id) }
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (m.role.lowercase() == "head") {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                                        }
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (m.role.lowercase() == "head") Icons.Filled.Crown else Icons.Filled.Person,
-                                    contentDescription = null,
-                                    tint = if (m.role.lowercase() == "head") Color.White else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = m.fullName,
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                )
-                                Text(
-                                    text = m.role,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                        }
-
-                        // Last visited Date tag or Add Visit prompt
-                        m.lastVisitedDate?.let { date ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "Visited: $date",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } ?: run {
-                            Text(
-                                text = "Never Visited",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
+                        Text("Matching Members:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                        matchingMembers.forEach { m ->
+                            Text("- ${m.fullName}", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -548,6 +461,221 @@ fun FamilyGroupCard(
 
 // Temporary layout support icons for the Crown marker helper
 private val Icons.Filled.Crown get() = Icons.Filled.Star
+
+// ==========================================
+// 2b. FAMILY PROFILE SCREEN
+// ==========================================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FamilyProfileScreen(
+    familyId: Long,
+    viewModel: MainViewModel,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val familyUnits by viewModel.familyUnits.collectAsState()
+    val familyUnit = familyUnits.find { it.family.id == familyId }
+
+    var selectedMemberForPopup by remember { mutableStateOf<Member?>(null) }
+    var showAddLogDialog by remember { mutableStateOf(false) }
+    var showAddMemberDialog by remember { mutableStateOf(false) }
+
+    if (familyUnit == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Family not found.")
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(onClick = onBack) { Text("Go Back") }
+            }
+        }
+        return
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            MediumTopAppBar(
+                title = { Text(familyUnit.family.familyName) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Go back")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddLogDialog = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Filled.AddComment, contentDescription = "Add Visit")
+            }
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "FAMILY DETAILS",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        ContactFieldRow(
+                            icon = Icons.Outlined.PinDrop,
+                            label = "Address",
+                            value = familyUnit.head?.address ?: "No address available"
+                        )
+                        ContactFieldRow(
+                            icon = Icons.Outlined.Phone,
+                            label = "Head Contact",
+                            value = familyUnit.head?.phoneNumber ?: "No phone available"
+                        )
+                        if (!familyUnit.family.additionalInfo.isNullOrBlank()) {
+                            ContactFieldRow(
+                                icon = Icons.Outlined.Info,
+                                label = "Additional Info",
+                                value = familyUnit.family.additionalInfo
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "MEMBERS",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    TextButton(
+                        onClick = { showAddMemberDialog = true },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("Add Member")
+                    }
+                }
+            }
+
+            items(familyUnit.members) { member ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { selectedMemberForPopup = member }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (member.role.lowercase() == "head") {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (member.role.lowercase() == "head") Icons.Filled.Crown else Icons.Filled.Person,
+                                contentDescription = null,
+                                tint = if (member.role.lowercase() == "head") Color.White else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = member.fullName,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                            Text(
+                                text = member.role,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                    Icon(Icons.Filled.ChevronRight, contentDescription = "View Profile")
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+
+        if (showAddLogDialog && familyUnit.head != null) {
+            AddVisitLogDialog(
+                onDismiss = { showAddLogDialog = false },
+                onConfirm = { date, reason, prayer, notes ->
+                    viewModel.addVisitLog(familyUnit.head.id, date, reason, prayer, notes)
+                    showAddLogDialog = false
+                }
+            )
+        } else if (showAddLogDialog && familyUnit.head == null) {
+            Toast.makeText(context, "No head found to associate visit.", Toast.LENGTH_SHORT).show()
+            showAddLogDialog = false
+        }
+
+        selectedMemberForPopup?.let { mem ->
+            AlertDialog(
+                onDismissRequest = { selectedMemberForPopup = null },
+                title = { Text(mem.fullName) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Role: ${mem.role}")
+                        Text("Birth Date: ${mem.dateOfBirth}")
+                        mem.weddingDate?.let { wed -> Text("Wedding Date: $wed") }
+                        if (mem.phoneNumber.isNotBlank()) Text("Phone: ${mem.phoneNumber}")
+                        if (mem.address.isNotBlank()) Text("Address: ${mem.address}")
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { selectedMemberForPopup = null }) {
+                        Text("Close")
+                    }
+                }
+            )
+        }
+
+        if (showAddMemberDialog) {
+            AddDialogMember(
+                onDismiss = { showAddMemberDialog = false },
+                onAdd = { draft ->
+                    viewModel.addDraftMemberToFamily(familyId, familyUnit.head, draft)
+                    showAddMemberDialog = false
+                }
+            )
+        }
+    }
+}
 
 // ==========================================
 // 3. MEMBER PROFILE & VISIT LOGS SCREEN
@@ -1104,7 +1232,10 @@ fun AddEditMemberScreen(
     var lastName by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(if (familyIdToJoin != null) "Other" else "Head") }
     var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var doorNo by remember { mutableStateOf("") }
+    var street by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var zip by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var weddingDate by remember { mutableStateOf("") }
 
@@ -1122,7 +1253,13 @@ fun AddEditMemberScreen(
                 lastName = m.lastName
                 role = m.role
                 phone = m.phoneNumber
-                address = m.address
+                
+                val addressParts = m.address.split(", ")
+                doorNo = addressParts.getOrNull(0) ?: ""
+                street = addressParts.getOrNull(1) ?: ""
+                city = addressParts.getOrNull(2) ?: ""
+                zip = addressParts.getOrNull(3) ?: ""
+
                 dob = m.dateOfBirth
                 weddingDate = m.weddingDate ?: ""
 
@@ -1206,34 +1343,36 @@ fun AddEditMemberScreen(
                 modifier = Modifier.fillMaxWidth().testTag("dob_input")
             )
 
-            // Wedding Date
-            OutlinedTextField(
-                value = weddingDate,
-                onValueChange = { weddingDate = it },
-                label = { Text("Wedding Date (Optional)") },
-                placeholder = { Text("YYYY-MM-DD") },
-                trailingIcon = {
-                    IconButton(onClick = {
-                        val wedParts = weddingDate.takeIf { it.isNotBlank() }?.split("-") ?: emptyList()
-                        val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
-                        val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
-                        val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
+            if (role == "Spouse") {
+                // Wedding Date
+                OutlinedTextField(
+                    value = weddingDate,
+                    onValueChange = { weddingDate = it },
+                    label = { Text("Wedding Date (Optional)") },
+                    placeholder = { Text("YYYY-MM-DD") },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            val wedParts = weddingDate.takeIf { it.isNotBlank() }?.split("-") ?: emptyList()
+                            val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
+                            val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
+                            val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
 
-                        DatePickerDialog(
-                            context,
-                            { _, y, m, d ->
-                                weddingDate = String.format("%d-%02d-%02d", y, m + 1, d)
-                            },
-                            year,
-                            month,
-                            day
-                        ).show()
-                    }) {
-                        Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().testTag("wedding_input")
-            )
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    weddingDate = String.format("%d-%02d-%02d", y, m + 1, d)
+                                },
+                                year,
+                                month,
+                                day
+                            ).show()
+                        }) {
+                            Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("wedding_input")
+                )
+            }
 
             // Family Role Selector (Head, Spouse, Child, Parent, Sibling, Grandparent, Other)
             Text("FAMILY ROLE ASSIGNMENT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
@@ -1301,10 +1440,31 @@ fun AddEditMemberScreen(
             )
 
             OutlinedTextField(
-                value = address,
-                onValueChange = { address = it },
-                label = { Text("Address") },
-                modifier = Modifier.fillMaxWidth().testTag("address_input")
+                value = doorNo,
+                onValueChange = { doorNo = it },
+                label = { Text("Door No.") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = street,
+                onValueChange = { street = it },
+                label = { Text("Street Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = city,
+                onValueChange = { city = it },
+                label = { Text("City") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = zip,
+                onValueChange = { zip = it },
+                label = { Text("Zip Code") },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -1324,6 +1484,7 @@ fun AddEditMemberScreen(
                             FamilyOption.JoinExisting(selectedExistingFamilyId)
                         }
 
+                        val combinedAddress = listOf(doorNo, street, city, zip).filter { it.isNotBlank() }.joinToString(", ")
                         viewModel.saveMember(
                             memberId = memberId ?: 0L,
                             firstName = firstName,
@@ -1331,9 +1492,9 @@ fun AddEditMemberScreen(
                             role = role,
                             familyOption = finalOption,
                             phoneNumber = phone,
-                            address = address,
+                            address = combinedAddress,
                             dateOfBirth = dob,
-                            weddingDate = weddingDate,
+                            weddingDate = if (role == "Spouse") weddingDate else null,
                             onComplete = onComplete
                         )
                     }

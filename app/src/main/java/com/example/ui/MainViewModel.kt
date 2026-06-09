@@ -25,7 +25,8 @@ data class EventReminder(
     val eventType: String,
     val years: Int,
     val daysRemaining: Int,
-    val dateStr: String
+    val dateStr: String,
+    val pairedNames: String? = null
 )
 
 class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
@@ -78,14 +79,23 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Events calculations for next 30 days
-    val upcomingEvents: StateFlow<List<EventReminder>> = members.map { mems ->
+    val upcomingEvents: StateFlow<List<EventReminder>> = familyUnits.map { units ->
         val reminders = mutableListOf<EventReminder>()
-        mems.forEach { m ->
-            val bday = calculateEventReminder(m, m.dateOfBirth, "Birthday")
-            if (bday != null && bday.daysRemaining in 0..30) reminders.add(bday)
-            
-            val wed = calculateEventReminder(m, m.weddingDate, "Anniversary")
-            if (wed != null && wed.daysRemaining in 0..30) reminders.add(wed)
+        units.forEach { unit ->
+            val head = unit.head
+            unit.members.forEach { m ->
+                val bday = calculateEventReminder(m, m.dateOfBirth, "Birthday")
+                if (bday != null && bday.daysRemaining in 0..30) reminders.add(bday)
+                
+                if (m.role.lowercase() == "spouse") {
+                    var wed = calculateEventReminder(m, m.weddingDate, "Anniversary")
+                    if (wed != null && wed.daysRemaining in 0..30) {
+                        val pairedNames = if (head != null) "${head.firstName} & ${m.firstName}" else m.firstName
+                        wed = wed.copy(pairedNames = pairedNames)
+                        reminders.add(wed)
+                    }
+                }
+            }
         }
         reminders.sortedBy { it.daysRemaining }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -115,12 +125,13 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         headDob: String,
         headWeddingDate: String?,
         relatedFamilies: String?,
+        additionalInfo: String?,
         additionalMembers: List<DraftMember>,
         onComplete: () -> Unit
     ) {
         viewModelScope.launch {
             val familyName = "$headFirstName's Family"
-            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies)
+            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies, additionalInfo = additionalInfo)
             val familyId = repository.insertFamily(newFamily)
 
             val headMember = Member(

@@ -44,10 +44,13 @@ fun CreateFamilyScreen(
     var headFirstName by remember { mutableStateOf("") }
     var headLastName by remember { mutableStateOf("") }
     var headPhone by remember { mutableStateOf("") }
-    var headAddress by remember { mutableStateOf("") }
+    var headDoorNo by remember { mutableStateOf("") }
+    var headStreet by remember { mutableStateOf("") }
+    var headCity by remember { mutableStateOf("") }
+    var headZip by remember { mutableStateOf("") }
     var headDob by remember { mutableStateOf("") }
-    var headWeddingDate by remember { mutableStateOf("") }
     var relatedFamiliesText by remember { mutableStateOf("") }
+    var familyAdditionalInfo by remember { mutableStateOf("") }
 
     val additionalMembers = remember { mutableStateListOf<DraftMember>() }
     
@@ -106,9 +109,37 @@ fun CreateFamilyScreen(
             )
 
             OutlinedTextField(
-                value = headAddress,
-                onValueChange = { headAddress = it },
-                label = { Text("Address") },
+                value = headDoorNo,
+                onValueChange = { headDoorNo = it },
+                label = { Text("Door No.") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = headStreet,
+                onValueChange = { headStreet = it },
+                label = { Text("Street Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = headCity,
+                onValueChange = { headCity = it },
+                label = { Text("City") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = headZip,
+                onValueChange = { headZip = it },
+                label = { Text("Zip Code") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = familyAdditionalInfo,
+                onValueChange = { familyAdditionalInfo = it },
+                label = { Text("Additional Information") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -146,34 +177,6 @@ fun CreateFamilyScreen(
                         ).show()
                     }) {
                         Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose DOB")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = headWeddingDate,
-                onValueChange = { headWeddingDate = it },
-                label = { Text("Wedding Date (Optional)") },
-                placeholder = { Text("YYYY-MM-DD") },
-                trailingIcon = {
-                    IconButton(onClick = {
-                        val wedParts = headWeddingDate.takeIf { it.isNotBlank() }?.split("-") ?: emptyList()
-                        val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
-                        val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
-                        val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
-
-                        DatePickerDialog(
-                            context,
-                            { _, y, m, d ->
-                                headWeddingDate = String.format("%d-%02d-%02d", y, m + 1, d)
-                            },
-                            year,
-                            month,
-                            day
-                        ).show()
-                    }) {
-                        Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Wedding Date")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -226,14 +229,18 @@ fun CreateFamilyScreen(
             Button(
                 onClick = {
                     if (headFirstName.isNotBlank() && headLastName.isNotBlank()) {
+                        val combinedAddress = listOf(headDoorNo, headStreet, headCity, headZip)
+                            .filter { it.isNotBlank() }
+                            .joinToString(", ")
                         viewModel.createFamilyWithMembers(
                             headFirstName,
                             headLastName,
                             headPhone,
-                            headAddress,
+                            combinedAddress,
                             headDob,
-                            headWeddingDate.takeIf { it.isNotBlank() },
+                            null, // wedding date only on spouse now
                             relatedFamiliesText.takeIf { it.isNotBlank() },
+                            familyAdditionalInfo.takeIf { it.isNotBlank() },
                             additionalMembers,
                             onComplete
                         )
