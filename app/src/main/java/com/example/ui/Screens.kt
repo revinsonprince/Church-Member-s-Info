@@ -22,6 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -501,7 +503,7 @@ fun FamilyProfileScreen(
                 title = { Text(familyUnit.family.familyName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Go back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
                     }
                 }
             )
@@ -740,7 +742,7 @@ fun MemberProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Go back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
                 }
                 Text(
                     text = "Member Profile",
@@ -945,7 +947,7 @@ fun MemberProfileScreen(
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Icon(
-                                    Icons.Outlined.Comment,
+                                    Icons.AutoMirrored.Outlined.Comment,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.secondary
                                 )
@@ -1294,7 +1296,7 @@ fun AddEditMemberScreen(
                 title = { Text(if (memberId == null || memberId == 0L) "Register Member" else "Edit Contact Info") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Go back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
                     }
                 }
             )
@@ -1541,7 +1543,7 @@ fun BackupScreen(
                 title = { Text("Backup & Core Portability") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Go back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
                     }
                 }
             )
