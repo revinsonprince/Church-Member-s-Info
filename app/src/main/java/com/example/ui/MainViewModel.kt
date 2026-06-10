@@ -355,7 +355,12 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         val month = parts[1].toIntOrNull() ?: return null
         val day = parts[2].toIntOrNull() ?: return null
 
-        val today = Calendar.getInstance()
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
         val currentYear = today.get(Calendar.YEAR)
 
         val eventThisYear = Calendar.getInstance().apply {
@@ -369,7 +374,7 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         }
 
         var nextEventYear = currentYear
-        if (eventThisYear.before(today) && eventThisYear.get(Calendar.DAY_OF_MONTH) != today.get(Calendar.DAY_OF_MONTH)) {
+        if (eventThisYear.before(today)) {
             eventThisYear.add(Calendar.YEAR, 1)
             nextEventYear++
         }
