@@ -8,6 +8,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
@@ -108,6 +116,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                BackHandler(enabled = screenStack.size > 1) {
+                    goBack()
+                }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
@@ -176,58 +188,68 @@ fun BoxWithNavigation(
     onBack: () -> Unit
 ) {
     androidx.compose.foundation.layout.Box(modifier = modifier) {
-        when (currentScreen) {
-            is Screen.Dashboard -> {
-                DashboardScreen(
-                    viewModel = viewModel,
-                    onNavigateToFamilyProfile = { onNavigate(Screen.FamilyProfile(it)) },
-                    onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
+        AnimatedContent(
+            targetState = currentScreen,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(300)) + slideInHorizontally(tween(300)) { it / 4 }).togetherWith(
+                    fadeOut(animationSpec = tween(300))
                 )
-            }
-            is Screen.Directory -> {
-                DirectoryScreen(
-                    viewModel = viewModel,
-                    onNavigateToFamilyProfile = { onNavigate(Screen.FamilyProfile(it)) },
-                    onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
-                )
-            }
-            is Screen.CreateFamily -> {
-                CreateFamilyScreen(
-                    viewModel = viewModel,
-                    onComplete = { onBack() },
-                    onBack = { onBack() }
-                )
-            }
-            is Screen.AddEditMember -> {
-                AddEditMemberScreen(
-                    memberId = currentScreen.memberId,
-                    familyIdToJoin = currentScreen.familyIdToJoin,
-                    viewModel = viewModel,
-                    onComplete = { onBack() },
-                    onBack = { onBack() }
-                )
-            }
-            is Screen.MemberProfile -> {
-                MemberProfileScreen(
-                    memberId = currentScreen.memberId,
-                    viewModel = viewModel,
-                    onNavigateToEdit = { onNavigate(Screen.AddEditMember(it)) },
-                    onBack = { onBack() }
-                )
-            }
-            is Screen.FamilyProfile -> {
-                FamilyProfileScreen(
-                    familyId = currentScreen.familyId,
-                    viewModel = viewModel,
-                    onNavigateToMember = { onNavigate(Screen.MemberProfile(it)) },
-                    onBack = { onBack() }
-                )
-            }
-            is Screen.Backup -> {
-                BackupScreen(
-                    viewModel = viewModel,
-                    onBack = { onNavigate(Screen.Dashboard) }
-                )
+            },
+            label = "ScreenTransition"
+        ) { targetScreen ->
+            when (targetScreen) {
+                is Screen.Dashboard -> {
+                    DashboardScreen(
+                        viewModel = viewModel,
+                        onNavigateToFamilyProfile = { onNavigate(Screen.FamilyProfile(it)) },
+                        onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
+                    )
+                }
+                is Screen.Directory -> {
+                    DirectoryScreen(
+                        viewModel = viewModel,
+                        onNavigateToFamilyProfile = { onNavigate(Screen.FamilyProfile(it)) },
+                        onNavigateToCreateFamily = { onNavigate(Screen.CreateFamily) }
+                    )
+                }
+                is Screen.CreateFamily -> {
+                    CreateFamilyScreen(
+                        viewModel = viewModel,
+                        onComplete = { onBack() },
+                        onBack = { onBack() }
+                    )
+                }
+                is Screen.AddEditMember -> {
+                    AddEditMemberScreen(
+                        memberId = targetScreen.memberId,
+                        familyIdToJoin = targetScreen.familyIdToJoin,
+                        viewModel = viewModel,
+                        onComplete = { onBack() },
+                        onBack = { onBack() }
+                    )
+                }
+                is Screen.MemberProfile -> {
+                    MemberProfileScreen(
+                        memberId = targetScreen.memberId,
+                        viewModel = viewModel,
+                        onNavigateToEdit = { onNavigate(Screen.AddEditMember(it)) },
+                        onBack = { onBack() }
+                    )
+                }
+                is Screen.FamilyProfile -> {
+                    FamilyProfileScreen(
+                        familyId = targetScreen.familyId,
+                        viewModel = viewModel,
+                        onNavigateToMember = { onNavigate(Screen.MemberProfile(it)) },
+                        onBack = { onBack() }
+                    )
+                }
+                is Screen.Backup -> {
+                    BackupScreen(
+                        viewModel = viewModel,
+                        onBack = { onNavigate(Screen.Dashboard) }
+                    )
+                }
             }
         }
     }
