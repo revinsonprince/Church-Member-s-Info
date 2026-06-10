@@ -589,50 +589,60 @@ fun FamilyProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 6.dp)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .clickable { onNavigateToMember(member.id) }
-                        .padding(12.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(
                                     if (member.role.lowercase() == "head") {
-                                        MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.primaryContainer
                                     } else {
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                        MaterialTheme.colorScheme.secondaryContainer
                                     }
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = if (member.role.lowercase() == "head") Icons.Filled.Crown else Icons.Filled.Person,
-                                contentDescription = null,
-                                tint = if (member.role.lowercase() == "head") Color.White else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
+                            val initial = member.firstName.take(1).uppercase()
+                            Text(
+                                text = initial,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (member.role.lowercase() == "head") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
                             )
+                            if (member.role.lowercase() == "head") {
+                                Icon(
+                                    Icons.Filled.Crown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp).align(Alignment.TopEnd).offset(x = 2.dp, y = (-2).dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                         Column {
                             Text(
                                 text = member.fullName,
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = member.role,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
-                    Icon(Icons.Filled.ChevronRight, contentDescription = "View Profile")
+                    Icon(Icons.Filled.ChevronRight, contentDescription = "View Profile", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -994,19 +1004,27 @@ fun ContactFieldRow(
     value: String
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(24.dp)
+            )
+        }
         Column {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-            Text(value, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+            Text(value, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
