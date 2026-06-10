@@ -479,6 +479,7 @@ fun FamilyProfileScreen(
 ) {
     val context = LocalContext.current
     val familyUnits by viewModel.familyUnits.collectAsState()
+    val allLogs by viewModel.allVisitLogs.collectAsState()
     val familyUnit = familyUnits.find { it.family.id == familyId }
 
 
@@ -495,6 +496,8 @@ fun FamilyProfileScreen(
         }
         return
     }
+
+    val logs = allLogs.filter { log -> familyUnit.members.any { it.id == log.memberId } }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -649,6 +652,71 @@ fun FamilyProfileScreen(
             }
 
             item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "VISITATION LOG HISTORY",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${logs.size} recorded",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            if (logs.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surface),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.Comment,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                "No visits logged yet.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(logs) { log ->
+                    VisitLogItem(
+                        log = log,
+                        onDelete = { viewModel.deleteVisitLog(log) }
+                    )
+                }
+            }
+
+            item {
                 Spacer(modifier = Modifier.height(80.dp))
             }
         }
@@ -693,13 +761,9 @@ fun MemberProfileScreen(
     val context = LocalContext.current
     val members by viewModel.members.collectAsState()
     val families by viewModel.families.collectAsState()
-    val allLogs by viewModel.allVisitLogs.collectAsState()
 
     val member = members.find { it.id == memberId }
     val family = families.find { it.id == member?.familyId }
-    val logs = allLogs.filter { it.memberId == memberId }
-
-    var showAddLogDialog by remember { mutableStateOf(false) }
 
     if (member == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -714,17 +778,6 @@ fun MemberProfileScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddLogDialog = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.testTag("add_visit_log_fab")
-            ) {
-                Icon(Icons.Filled.AddComment, contentDescription = "Add Visit Log")
-            }
-        },
         contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
         Column(
@@ -900,85 +953,8 @@ fun MemberProfileScreen(
                         }
                     }
                 }
-
-                // Visitation Logs List Header
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Visitation Log History",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "${logs.size} recorded",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                // Visit logs list
-                if (logs.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surface),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Outlined.Comment,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                                Text(
-                                    "No visits logged yet.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    items(logs) { log ->
-                        VisitLogItem(
-                            log = log,
-                            onDelete = { viewModel.deleteVisitLog(log) }
-                        )
-                    }
-                }
             }
         }
-    }
-
-    if (showAddLogDialog) {
-        AddVisitLogDialog(
-            onDismiss = { showAddLogDialog = false },
-            onConfirm = { date, reason, prayers, notes ->
-                viewModel.addVisitLog(member.id, date, reason, prayers, notes)
-                showAddLogDialog = false
-            }
-        )
     }
 }
 

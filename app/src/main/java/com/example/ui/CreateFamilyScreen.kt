@@ -60,6 +60,8 @@ fun CreateFamilyScreen(
     val additionalMembers = remember { mutableStateListOf<DraftMember>() }
     
     var showAddMemberDialog by remember { mutableStateOf(false) }
+    var memberToEdit by remember { mutableStateOf<DraftMember?>(null) }
+    var editIndex by remember { mutableStateOf(-1) }
     var showLinkFamilyDialog by remember { mutableStateOf(false) }
 
     val familyUnits by viewModel.familyUnits.collectAsState()
@@ -239,7 +241,11 @@ fun CreateFamilyScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("FAMILY MEMBERS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                TextButton(onClick = { showAddMemberDialog = true }) {
+                TextButton(onClick = { 
+                    memberToEdit = null
+                    editIndex = -1
+                    showAddMemberDialog = true 
+                }) {
                     Text("Add Member")
                 }
             }
@@ -265,8 +271,17 @@ fun CreateFamilyScreen(
                             Text("${m.firstName} ${m.lastName}", fontWeight = FontWeight.Bold)
                             Text(m.role, style = MaterialTheme.typography.bodySmall)
                         }
-                        IconButton(onClick = { additionalMembers.removeAt(index) }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Remove")
+                        Row {
+                            IconButton(onClick = { 
+                                memberToEdit = m
+                                editIndex = index
+                                showAddMemberDialog = true
+                            }) {
+                                Icon(Icons.Filled.Edit, contentDescription = "Edit")
+                            }
+                            IconButton(onClick = { additionalMembers.removeAt(index) }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Remove")
+                            }
                         }
                     }
                 }
@@ -342,10 +357,21 @@ fun CreateFamilyScreen(
 
     if (showAddMemberDialog) {
         AddDialogMember(
-            onDismiss = { showAddMemberDialog = false },
+            initialMember = memberToEdit,
+            onDismiss = { 
+                showAddMemberDialog = false 
+                memberToEdit = null
+                editIndex = -1
+            },
             onAdd = { draft ->
-                additionalMembers.add(draft)
+                if (editIndex >= 0) {
+                    additionalMembers[editIndex] = draft
+                } else {
+                    additionalMembers.add(draft)
+                }
                 showAddMemberDialog = false
+                memberToEdit = null
+                editIndex = -1
             }
         )
     }
@@ -353,19 +379,20 @@ fun CreateFamilyScreen(
 
 @Composable
 fun AddDialogMember(
+    initialMember: DraftMember? = null,
     onDismiss: () -> Unit,
     onAdd: (DraftMember) -> Unit
 ) {
     val context = LocalContext.current
-    var fmFirstName by remember { mutableStateOf("") }
-    var fmLastName by remember { mutableStateOf("") }
-    var fmRole by remember { mutableStateOf("Spouse") }
-    var fmPhone by remember { mutableStateOf("") }
-    var fmDob by remember { mutableStateOf("2000-01-01") }
+    var fmFirstName by remember { mutableStateOf(initialMember?.firstName ?: "") }
+    var fmLastName by remember { mutableStateOf(initialMember?.lastName ?: "") }
+    var fmRole by remember { mutableStateOf(initialMember?.role ?: "Spouse") }
+    var fmPhone by remember { mutableStateOf(initialMember?.phoneNumber ?: "") }
+    var fmDob by remember { mutableStateOf(initialMember?.dateOfBirth ?: "2000-01-01") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Family Member") },
+        title = { Text(if (initialMember == null) "Add Family Member" else "Edit Family Member") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -447,7 +474,7 @@ fun AddDialogMember(
                     onAdd(DraftMember(fmFirstName, fmLastName, fmRole, fmDob, fmPhone.takeIf { it.isNotBlank() }))
                 }
             }) {
-                Text("Add")
+                Text(if (initialMember == null) "Add" else "Save")
             }
         },
         dismissButton = {
