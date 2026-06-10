@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.example.data.Family
 import com.example.data.Member
 import com.example.data.VisitLog
@@ -470,13 +472,14 @@ private val Icons.Filled.Crown get() = Icons.Filled.Star
 fun FamilyProfileScreen(
     familyId: Long,
     viewModel: MainViewModel,
+    onNavigateToMember: (Long) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val familyUnits by viewModel.familyUnits.collectAsState()
     val familyUnit = familyUnits.find { it.family.id == familyId }
 
-    var selectedMemberForPopup by remember { mutableStateOf<Member?>(null) }
+
     var showAddLogDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
 
@@ -588,7 +591,7 @@ fun FamilyProfileScreen(
                         .padding(bottom = 6.dp)
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { selectedMemberForPopup = member }
+                        .clickable { onNavigateToMember(member.id) }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -651,25 +654,7 @@ fun FamilyProfileScreen(
             showAddLogDialog = false
         }
 
-        selectedMemberForPopup?.let { mem ->
-            AlertDialog(
-                onDismissRequest = { selectedMemberForPopup = null },
-                title = { Text(mem.fullName) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Role: ${mem.role}")
-                        Text("Birth Date: ${mem.dateOfBirth}")
-                        if (mem.phoneNumber.isNotBlank()) Text("Phone: ${mem.phoneNumber}")
-                        if (mem.address.isNotBlank()) Text("Address: ${mem.address}")
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { selectedMemberForPopup = null }) {
-                        Text("Close")
-                    }
-                }
-            )
-        }
+
 
         if (showAddMemberDialog) {
             AddDialogMember(
@@ -1240,7 +1225,9 @@ fun AddEditMemberScreen(
     var phone by remember { mutableStateOf("") }
     var doorNo by remember { mutableStateOf("") }
     var street by remember { mutableStateOf("") }
+    var locality by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
     var zip by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
 
@@ -1262,8 +1249,10 @@ fun AddEditMemberScreen(
                 val addressParts = m.address.split(", ")
                 doorNo = addressParts.getOrNull(0) ?: ""
                 street = addressParts.getOrNull(1) ?: ""
-                city = addressParts.getOrNull(2) ?: ""
-                zip = addressParts.getOrNull(3) ?: ""
+                locality = addressParts.getOrNull(2) ?: ""
+                city = addressParts.getOrNull(3) ?: ""
+                state = addressParts.getOrNull(4) ?: ""
+                zip = addressParts.getOrNull(5) ?: ""
 
                 dob = m.dateOfBirth
 
@@ -1415,7 +1404,7 @@ fun AddEditMemberScreen(
             OutlinedTextField(
                 value = doorNo,
                 onValueChange = { doorNo = it },
-                label = { Text("Door No.") },
+                label = { Text("House Number") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -1427,6 +1416,13 @@ fun AddEditMemberScreen(
             )
 
             OutlinedTextField(
+                value = locality,
+                onValueChange = { locality = it },
+                label = { Text("Locality") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = city,
                 onValueChange = { city = it },
                 label = { Text("City") },
@@ -1434,9 +1430,17 @@ fun AddEditMemberScreen(
             )
 
             OutlinedTextField(
+                value = state,
+                onValueChange = { state = it },
+                label = { Text("State") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = zip,
                 onValueChange = { zip = it },
-                label = { Text("Zip Code") },
+                label = { Text("PIN Code") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -1457,7 +1461,7 @@ fun AddEditMemberScreen(
                             FamilyOption.JoinExisting(selectedExistingFamilyId)
                         }
 
-                        val combinedAddress = listOf(doorNo, street, city, zip).filter { it.isNotBlank() }.joinToString(", ")
+                        val combinedAddress = listOf(doorNo, street, locality, city, state, zip).filter { it.isNotBlank() }.joinToString(", ")
                         viewModel.saveMember(
                             memberId = memberId ?: 0L,
                             firstName = firstName,

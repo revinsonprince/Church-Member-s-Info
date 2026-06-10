@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_shepherd_logo_1780899622104"
+        android:drawable="@drawable/cross_icon_1781076771803"
         android:gravity="center" />
 </layer-list>

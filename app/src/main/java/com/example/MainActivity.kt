@@ -219,6 +219,7 @@ fun BoxWithNavigation(
                 FamilyProfileScreen(
                     familyId = currentScreen.familyId,
                     viewModel = viewModel,
+                    onNavigateToMember = { onNavigate(Screen.MemberProfile(it)) },
                     onBack = { onBack() }
                 )
             }

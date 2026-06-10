@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import java.util.Calendar
 
 data class DraftMember(
@@ -45,7 +47,9 @@ fun CreateFamilyScreen(
     var headPhone by remember { mutableStateOf("") }
     var headDoorNo by remember { mutableStateOf("") }
     var headStreet by remember { mutableStateOf("") }
+    var headLocality by remember { mutableStateOf("") }
     var headCity by remember { mutableStateOf("") }
+    var headState by remember { mutableStateOf("") }
     var headZip by remember { mutableStateOf("") }
     var headDob by remember { mutableStateOf("") }
     var relatedFamiliesText by remember { mutableStateOf("") }
@@ -111,7 +115,7 @@ fun CreateFamilyScreen(
             OutlinedTextField(
                 value = headDoorNo,
                 onValueChange = { headDoorNo = it },
-                label = { Text("Door No.") },
+                label = { Text("House Number") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -123,6 +127,13 @@ fun CreateFamilyScreen(
             )
 
             OutlinedTextField(
+                value = headLocality,
+                onValueChange = { headLocality = it },
+                label = { Text("Locality") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = headCity,
                 onValueChange = { headCity = it },
                 label = { Text("City") },
@@ -130,9 +141,17 @@ fun CreateFamilyScreen(
             )
 
             OutlinedTextField(
+                value = headState,
+                onValueChange = { headState = it },
+                label = { Text("State") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = headZip,
                 onValueChange = { headZip = it },
-                label = { Text("Zip Code") },
+                label = { Text("PIN Code") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -257,7 +276,7 @@ fun CreateFamilyScreen(
             Button(
                 onClick = {
                     if (headFirstName.isNotBlank() && headLastName.isNotBlank()) {
-                        val combinedAddress = listOf(headDoorNo, headStreet, headCity, headZip)
+                        val combinedAddress = listOf(headDoorNo, headStreet, headLocality, headCity, headState, headZip)
                             .filter { it.isNotBlank() }
                             .joinToString(", ")
                         viewModel.createFamilyWithMembers(
