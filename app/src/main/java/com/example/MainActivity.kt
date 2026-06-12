@@ -191,8 +191,8 @@ fun BoxWithNavigation(
         AnimatedContent(
             targetState = currentScreen,
             transitionSpec = {
-                (fadeIn(animationSpec = tween(300)) + slideInHorizontally(tween(300)) { it / 4 }).togetherWith(
-                    fadeOut(animationSpec = tween(300))
+                (fadeIn(animationSpec = tween(400)) + slideInHorizontally(tween(400)) { it }).togetherWith(
+                    fadeOut(animationSpec = tween(400)) + slideOutHorizontally(tween(400)) { -it / 3 }
                 )
             },
             label = "ScreenTransition"

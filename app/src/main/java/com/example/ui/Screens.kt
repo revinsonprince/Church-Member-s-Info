@@ -528,28 +528,31 @@ fun FamilyProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
+                Text(
+                    text = "FAMILY DETAILS",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "FAMILY DETAILS",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         ContactFieldRow(
                             icon = Icons.Outlined.PinDrop,
                             label = "Address",
                             value = familyUnit.family.address.ifBlank { "No address available" }
                         )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
                         ContactFieldRow(
                             icon = Icons.Outlined.Phone,
                             label = "Head Contact",
                             value = familyUnit.head?.phoneNumber ?: "No phone available"
                         )
                         if (!familyUnit.family.additionalInfo.isNullOrBlank()) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
                             ContactFieldRow(
                                 icon = Icons.Outlined.Info,
                                 label = "Additional Info",
@@ -557,6 +560,7 @@ fun FamilyProfileScreen(
                             )
                         }
                         if (!familyUnit.family.weddingDate.isNullOrBlank()) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
                             ContactFieldRow(
                                 icon = Icons.Outlined.Favorite,
                                 label = "Family Wedding Date",
@@ -569,40 +573,44 @@ fun FamilyProfileScreen(
 
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 16.dp, end = 8.dp, bottom = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "MEMBERS",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.secondary
                     )
                     TextButton(
                         onClick = { showAddMemberDialog = true },
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text("Add Member")
+                        Text("Add")
                     }
                 }
             }
 
             items(familyUnit.members) { member ->
-                Row(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 6.dp)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable { onNavigateToMember(member.id) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(bottom = 8.dp)
+                        .clickable { onNavigateToMember(member.id) },
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -646,6 +654,7 @@ fun FamilyProfileScreen(
                         }
                     }
                     Icon(Icons.Filled.ChevronRight, contentDescription = "View Profile", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
 
@@ -929,32 +938,33 @@ fun MemberProfileScreen(
 
                 // Profile secondary fields (DOB, Phone, Address)
                 item {
+                    Text(
+                        text = "CONTACT & PERSONAL DETAILS",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                    )
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                "CONTACT & PERSONAL DETAILS",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-
                             ContactFieldRow(
                                 icon = Icons.Outlined.Cake,
                                 label = "Date of Birth",
                                 value = member.dateOfBirth
                             )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
                             ContactFieldRow(
                                 icon = Icons.Outlined.Phone,
                                 label = "Phone Number",
                                 value = member.phoneNumber
                             )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
                             ContactFieldRow(
                                 icon = Icons.Outlined.PinDrop,
                                 label = "Address",
