@@ -68,12 +68,12 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
             units.filter { unit ->
                 val matchFamilyName = unit.family.familyName.contains(query, ignoreCase = true)
                 val matchHead = unit.head?.fullName?.contains(query, ignoreCase = true) == true
+                val matchAddress = unit.family.address.contains(query, ignoreCase = true)
                 val matchMember = unit.members.any { m ->
                     m.fullName.contains(query, ignoreCase = true) ||
-                    m.phoneNumber.contains(query, ignoreCase = true) ||
-                    m.address.contains(query, ignoreCase = true)
+                    m.phoneNumber.contains(query, ignoreCase = true)
                 }
-                matchFamilyName || matchHead || matchMember
+                matchFamilyName || matchHead || matchMember || matchAddress
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -131,7 +131,7 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
     ) {
         viewModelScope.launch {
             val familyName = "$headFirstName's Family"
-            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies, additionalInfo = additionalInfo, weddingDate = familyWeddingDate)
+            val newFamily = Family(familyName = familyName, relatedFamilies = relatedFamilies, additionalInfo = additionalInfo, weddingDate = familyWeddingDate, address = headAddress)
             val familyId = repository.insertFamily(newFamily)
 
             val headMember = Member(
@@ -140,7 +140,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 lastName = headLastName,
                 role = "Head",
                 phoneNumber = headPhone,
-                address = headAddress,
                 dateOfBirth = headDob.ifBlank { "2000-01-01" },
                 lastVisitedDate = null
             )
@@ -156,7 +155,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                     lastName = m.lastName,
                     role = m.role,
                     phoneNumber = m.phoneNumber ?: headPhone, // Use provided phone or inherit
-                    address = headAddress,   // Inherits address
                     dateOfBirth = m.dateOfBirth.ifBlank { "2000-01-01" },
                     lastVisitedDate = null
                 )
@@ -174,7 +172,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
         role: String,
         familyOption: FamilyOption,
         phoneNumber: String,
-        address: String,
         dateOfBirth: String,
         onComplete: () -> Unit
     ) {
@@ -200,7 +197,6 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
                 lastName = lastName,
                 role = role,
                 phoneNumber = phoneNumber,
-                address = address,
                 dateOfBirth = dateOfBirth.ifBlank { "2000-01-01" },
                 lastVisitedDate = if (memberId != 0L) repository.getMemberById(memberId)?.lastVisitedDate else null
             )
@@ -257,14 +253,12 @@ class MainViewModel(private val repository: ChurchRepository) : ViewModel() {
     fun addDraftMemberToFamily(familyId: Long, headMember: Member?, draft: DraftMember) {
         viewModelScope.launch {
             val phone = draft.phoneNumber?.takeIf { it.isNotBlank() } ?: headMember?.phoneNumber ?: ""
-            val address = headMember?.address ?: ""
             val newMember = Member(
                 familyId = familyId,
                 firstName = draft.firstName,
                 lastName = draft.lastName,
                 role = draft.role,
                 phoneNumber = phone,
-                address = address,
                 dateOfBirth = draft.dateOfBirth.ifBlank { "2000-01-01" },
                 lastVisitedDate = null
             )

@@ -39,6 +39,7 @@ object BackupUtils {
                 fObj.put("relatedFamilies", f.relatedFamilies ?: JSONObject.NULL)
                 fObj.put("additionalInfo", f.additionalInfo ?: JSONObject.NULL)
                 fObj.put("weddingDate", f.weddingDate ?: JSONObject.NULL)
+                fObj.put("address", f.address)
                 familiesArray.put(fObj)
             }
             root.put("families", familiesArray)
@@ -53,7 +54,6 @@ object BackupUtils {
                 mObj.put("lastName", m.lastName)
                 mObj.put("role", m.role)
                 mObj.put("phoneNumber", m.phoneNumber)
-                mObj.put("address", m.address)
                 mObj.put("dateOfBirth", m.dateOfBirth)
                 mObj.put("lastVisitedDate", m.lastVisitedDate ?: JSONObject.NULL)
                 membersArray.put(mObj)
@@ -125,7 +125,8 @@ object BackupUtils {
                             headMemberId = obj.optLong("headMemberId"),
                             relatedFamilies = if (obj.isNull("relatedFamilies")) null else obj.optString("relatedFamilies"),
                             additionalInfo = if (obj.isNull("additionalInfo")) null else obj.optString("additionalInfo"),
-                            weddingDate = if (obj.isNull("weddingDate")) null else obj.optString("weddingDate")
+                            weddingDate = if (obj.isNull("weddingDate")) null else obj.optString("weddingDate"),
+                            address = obj.optString("address", "")
                         )
                     )
                 }
@@ -144,7 +145,6 @@ object BackupUtils {
                             lastName = obj.optString("lastName"),
                             role = obj.optString("role"),
                             phoneNumber = obj.optString("phoneNumber"),
-                            address = obj.optString("address"),
                             dateOfBirth = obj.optString("dateOfBirth"),
                             lastVisitedDate = if (obj.isNull("lastVisitedDate")) null else obj.optString("lastVisitedDate")
                         )

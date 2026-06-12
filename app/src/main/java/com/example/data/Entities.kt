@@ -10,7 +10,8 @@ data class Family(
     val headMemberId: Long = 0,
     val relatedFamilies: String? = null,
     val additionalInfo: String? = null,
-    val weddingDate: String? = null // Format: YYYY-MM-DD
+    val weddingDate: String? = null, // Format: YYYY-MM-DD
+    val address: String = ""
 )
 
 @Entity(tableName = "members")
@@ -21,7 +22,6 @@ data class Member(
     val lastName: String,
     val role: String, // "Head", "Spouse", "Child", "Parent", "Sibling", "Grandparent", "Other"
     val phoneNumber: String,
-    val address: String,
     val dateOfBirth: String, // Format: YYYY-MM-DD
     val lastVisitedDate: String? = null // Cache of latest visit log date
 ) {

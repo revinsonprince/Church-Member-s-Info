@@ -438,7 +438,6 @@ fun FamilyGroupCard(
             if (searchQuery.isNotBlank()) {
                 val matchingMembers = unit.members.filter { m ->
                     m.fullName.contains(searchQuery, ignoreCase = true) ||
-                    m.address.contains(searchQuery, ignoreCase = true) ||
                     m.phoneNumber.contains(searchQuery, ignoreCase = true)
                 }
 
@@ -485,6 +484,7 @@ fun FamilyProfileScreen(
 
     var showAddLogDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
+    var showEditFamilyDialog by remember { mutableStateOf(false) }
 
     if (familyUnit == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -507,6 +507,11 @@ fun FamilyProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showEditFamilyDialog = true }) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Edit Family")
                     }
                 }
             )
@@ -544,7 +549,7 @@ fun FamilyProfileScreen(
                         ContactFieldRow(
                             icon = Icons.Outlined.PinDrop,
                             label = "Address",
-                            value = familyUnit.head?.address ?: "No address available"
+                            value = familyUnit.family.address.ifBlank { "No address available" }
                         )
                         ContactFieldRow(
                             icon = Icons.Outlined.Phone,
@@ -745,6 +750,17 @@ fun FamilyProfileScreen(
                 }
             )
         }
+
+        if (showEditFamilyDialog) {
+            EditFamilyDialog(
+                family = familyUnit.family,
+                onDismiss = { showEditFamilyDialog = false },
+                onSave = { updatedFamily ->
+                    viewModel.saveFamily(updatedFamily)
+                    showEditFamilyDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -905,7 +921,8 @@ fun MemberProfileScreen(
                                     label = "Map",
                                     onClick = {
                                         try {
-                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(member.address)}"))
+                                            val addressStr = family?.address ?: ""
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(addressStr)}"))
                                             context.startActivity(mapIntent)
                                         } catch (e: Exception) {
                                             Toast.makeText(context, "Map unavailable", Toast.LENGTH_SHORT).show()
@@ -948,7 +965,7 @@ fun MemberProfileScreen(
                             ContactFieldRow(
                                 icon = Icons.Outlined.PinDrop,
                                 label = "Address",
-                                value = member.address
+                                value = family?.address ?: "No address provided"
                             )
                         }
                     }
@@ -1096,6 +1113,97 @@ fun VisitLogItem(log: VisitLog, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditFamilyDialog(
+    family: Family,
+    onDismiss: () -> Unit,
+    onSave: (Family) -> Unit
+) {
+    val context = LocalContext.current
+    var familyName by remember { mutableStateOf(family.familyName) }
+    var additionalInfo by remember { mutableStateOf(family.additionalInfo ?: "") }
+    var address by remember { mutableStateOf(family.address) }
+    var weddingDate by remember { mutableStateOf(family.weddingDate ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Family") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = familyName,
+                    onValueChange = { familyName = it },
+                    label = { Text("Family Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Address") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = additionalInfo,
+                    onValueChange = { additionalInfo = it },
+                    label = { Text("Additional Info") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = weddingDate,
+                    onValueChange = { weddingDate = it },
+                    label = { Text("Wedding Date") },
+                    placeholder = { Text("YYYY-MM-DD") },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            val wedParts = weddingDate.split("-")
+                            val year = wedParts.getOrNull(0)?.toIntOrNull() ?: 2000
+                            val month = (wedParts.getOrNull(1)?.toIntOrNull() ?: 1) - 1
+                            val day = wedParts.getOrNull(2)?.toIntOrNull() ?: 1
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    weddingDate = String.format("%d-%02d-%02d", y, m + 1, d)
+                                },
+                                year, month, day
+                            ).show()
+                        }) {
+                            Icon(Icons.Filled.CalendarMonth, contentDescription = "Choose Date")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (familyName.isNotBlank()) {
+                    onSave(
+                        family.copy(
+                            familyName = familyName,
+                            additionalInfo = additionalInfo.takeIf { it.isNotBlank() },
+                            address = address,
+                            weddingDate = weddingDate.takeIf { it.isNotBlank() }
+                        )
+                    )
+                }
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 // Dialog to add visit logs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1219,12 +1327,6 @@ fun AddEditMemberScreen(
     var lastName by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(if (familyIdToJoin != null) "Other" else "Head") }
     var phone by remember { mutableStateOf("") }
-    var doorNo by remember { mutableStateOf("") }
-    var street by remember { mutableStateOf("") }
-    var locality by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var zip by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
 
     // Relationship matching options
@@ -1241,14 +1343,6 @@ fun AddEditMemberScreen(
                 lastName = m.lastName
                 role = m.role
                 phone = m.phoneNumber
-                
-                val addressParts = m.address.split(", ")
-                doorNo = addressParts.getOrNull(0) ?: ""
-                street = addressParts.getOrNull(1) ?: ""
-                locality = addressParts.getOrNull(2) ?: ""
-                city = addressParts.getOrNull(3) ?: ""
-                state = addressParts.getOrNull(4) ?: ""
-                zip = addressParts.getOrNull(5) ?: ""
 
                 dob = m.dateOfBirth
 
@@ -1397,49 +1491,6 @@ fun AddEditMemberScreen(
                 modifier = Modifier.fillMaxWidth().testTag("phone_input")
             )
 
-            OutlinedTextField(
-                value = doorNo,
-                onValueChange = { doorNo = it },
-                label = { Text("House Number") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = street,
-                onValueChange = { street = it },
-                label = { Text("Street Name") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = locality,
-                onValueChange = { locality = it },
-                label = { Text("Locality") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = city,
-                onValueChange = { city = it },
-                label = { Text("City") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = state,
-                onValueChange = { state = it },
-                label = { Text("State") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = zip,
-                onValueChange = { zip = it },
-                label = { Text("PIN Code") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-
             Spacer(modifier = Modifier.height(12.dp))
 
             // Action triggers
@@ -1457,7 +1508,6 @@ fun AddEditMemberScreen(
                             FamilyOption.JoinExisting(selectedExistingFamilyId)
                         }
 
-                        val combinedAddress = listOf(doorNo, street, locality, city, state, zip).filter { it.isNotBlank() }.joinToString(", ")
                         viewModel.saveMember(
                             memberId = memberId ?: 0L,
                             firstName = firstName,
@@ -1465,7 +1515,6 @@ fun AddEditMemberScreen(
                             role = role,
                             familyOption = finalOption,
                             phoneNumber = phone,
-                            address = combinedAddress,
                             dateOfBirth = dob,
                             onComplete = onComplete
                         )

@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Family::class, Member::class, VisitLog::class], version = 5, exportSchema = false)
+@Database(entities = [Family::class, Member::class, VisitLog::class], version = 6, exportSchema = false)
 abstract class ChurchDatabase : RoomDatabase() {
     abstract fun churchDao(): ChurchDao
 
