@@ -510,21 +510,14 @@ fun FamilyProfileScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showAddLogDialog = true }) {
+                        Icon(Icons.Filled.AddComment, contentDescription = "Add Visit Log")
+                    }
                     IconButton(onClick = { showEditFamilyDialog = true }) {
                         Icon(Icons.Filled.Edit, contentDescription = "Edit Family")
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddLogDialog = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Filled.AddComment, contentDescription = "Add Visit")
-            }
         }
     ) { innerPadding ->
         LazyColumn(
