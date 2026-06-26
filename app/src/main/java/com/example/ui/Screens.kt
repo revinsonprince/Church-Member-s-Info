@@ -474,6 +474,7 @@ fun FamilyProfileScreen(
     familyId: Long,
     viewModel: MainViewModel,
     onNavigateToMember: (Long) -> Unit,
+    onNavigateToEditFamily: (Long) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -484,7 +485,6 @@ fun FamilyProfileScreen(
 
     var showAddLogDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
-    var showEditFamilyDialog by remember { mutableStateOf(false) }
 
     if (familyUnit == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -513,7 +513,7 @@ fun FamilyProfileScreen(
                     IconButton(onClick = { showAddLogDialog = true }) {
                         Icon(Icons.Filled.AddComment, contentDescription = "Add Visit Log")
                     }
-                    IconButton(onClick = { showEditFamilyDialog = true }) {
+                    IconButton(onClick = { onNavigateToEditFamily(familyId) }) {
                         Icon(Icons.Filled.Edit, contentDescription = "Edit Family")
                     }
                 }
@@ -749,17 +749,6 @@ fun FamilyProfileScreen(
                 onAdd = { draft ->
                     viewModel.addDraftMemberToFamily(familyId, familyUnit.head, draft)
                     showAddMemberDialog = false
-                }
-            )
-        }
-
-        if (showEditFamilyDialog) {
-            EditFamilyDialog(
-                family = familyUnit.family,
-                onDismiss = { showEditFamilyDialog = false },
-                onSave = { updatedFamily ->
-                    viewModel.saveFamily(updatedFamily)
-                    showEditFamilyDialog = false
                 }
             )
         }
